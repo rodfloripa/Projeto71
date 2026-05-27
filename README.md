@@ -1,3 +1,7 @@
+
+
+---
+
 # 1. Inferência Causal em Grafos por Intervenção em Nós
 
 <div align="justify">
@@ -6,11 +10,13 @@ A pergunta:
 
 > “Esse nó causou a divisão do grupo?”
 
-pode ser reformulada como um problema de **efeito causal de uma intervenção estrutural no grafo**, onde removemos um nó e observamos como a estrutura muda.
+pode ser tratada como um problema de **efeito causal de remoção de nós em um grafo**.
 
-A ideia central é simples:
+A ideia é simples:
 
-> Se eu remover um nó e o grafo se fragmenta ou muda significativamente, esse nó tem influência causal na coesão do sistema.
+> remover um nó e observar como a estrutura do grafo muda.
+
+Se a estrutura muda muito, esse nó tem influência causal na organização do sistema.
 
 </div>
 
@@ -22,22 +28,22 @@ A ideia central é simples:
 
 Considere um grafo ( G = (V, E) ), onde:
 
-* ( V ): conjunto de nós
-* ( E ): conjunto de conexões
+* ( V ): nós
+* ( E ): conexões
 
 Definimos:
 
 * ( G_0 ): grafo original
-* ( G_{-v} ): grafo após remover o nó ( v )
-* ( Y(G) ): medida estrutural do grafo
+* ( G_{-v} ): grafo sem o nó ( v )
+* ( Y(G) ): medida estrutural
 
-O efeito do nó ( v ) é:
+O efeito causal do nó é:
 
 [
 \Delta_v = Y(G_0) - Y(G_{-v})
 ]
 
-Se essa diferença for grande, o nó tem forte influência estrutural.
+Se ( \Delta_v ) for grande, o nó tem forte impacto estrutural.
 
 </div>
 
@@ -47,24 +53,20 @@ Se essa diferença for grande, o nó tem forte influência estrutural.
 
 <div align="justify">
 
-Aqui usamos duas medidas principais para avaliar o impacto:
-
 ## 3.1 Número de componentes conectados
 
 [
-Y(G) = \text{quantidade de componentes conectados}
+Y(G) = \text{número de componentes conectados}
 ]
 
 Interpretação:
 
-* aumento após remoção → o nó mantinha o grafo unido
+* aumenta após remoção → o nó mantinha o grafo unido
 * indica papel de ponte estrutural
 
 ---
 
 ## 3.2 Modularidade
-
-A modularidade mede o quanto o grafo se organiza em grupos:
 
 [
 Q = \frac{1}{2m} \sum_{ij} \left(A_{ij} - \frac{k_i k_j}{2m}\right)\delta(c_i, c_j)
@@ -72,8 +74,8 @@ Q = \frac{1}{2m} \sum_{ij} \left(A_{ij} - \frac{k_i k_j}{2m}\right)\delta(c_i, c
 
 Interpretação:
 
-* aumento → o nó conectava grupos diferentes
-* redução → o nó estava dentro de um grupo específico
+* aumenta → o nó conectava comunidades diferentes
+* diminui → o nó estava dentro de uma comunidade
 
 </div>
 
@@ -83,15 +85,13 @@ Interpretação:
 
 <div align="justify">
 
-O procedimento geral é:
-
-1. calcular as medidas do grafo original
+1. calcular métricas do grafo original
 2. remover um nó
-3. recalcular as medidas
-4. comparar a diferença
+3. recalcular métricas
+4. comparar diferenças
 5. repetir para todos os nós
 
-Isso gera uma ordem de importância causal estrutural.
+Isso gera um ranking de influência causal estrutural.
 
 </div>
 
@@ -101,14 +101,13 @@ Isso gera uma ordem de importância causal estrutural.
 
 ```python
 import networkx as nx
-import numpy as np
 from community import community_louvain
 
 # -----------------------------
-# 1. Medidas do grafo
+# Métricas do grafo
 # -----------------------------
 
-def calcular_medidas(G):
+def calcular_metricas(G):
     componentes = nx.number_connected_components(G)
 
     if G.number_of_edges() > 0:
@@ -123,49 +122,46 @@ def calcular_medidas(G):
     }
 
 # -----------------------------
-# 2. Remoção de nó (intervenção)
+# Intervenção (remoção de nó)
 # -----------------------------
 
 def remover_no(G, no):
-    copia = G.copy()
-    if no in copia:
-        copia.remove_node(no)
-    return copia
+    G2 = G.copy()
+    if no in G2:
+        G2.remove_node(no)
+    return G2
 
 # -----------------------------
-# 3. Efeito causal de um nó
+# Efeito causal
 # -----------------------------
 
-def efeito_causal_no(G, no):
-    base = calcular_medidas(G)
-    intervencionado = calcular_medidas(remover_no(G, no))
+def efeito_causal(G, no):
+    base = calcular_metricas(G)
+    novo = calcular_metricas(remover_no(G, no))
 
     return {
         "no": no,
-        "delta_componentes": intervencionado["componentes"] - base["componentes"],
-        "delta_modularidade": intervencionado["modularidade"] - base["modularidade"]
+        "delta_componentes": novo["componentes"] - base["componentes"],
+        "delta_modularidade": novo["modularidade"] - base["modularidade"]
     }
 
 # -----------------------------
-# 4. Ranking de influência causal
+# Ranking causal
 # -----------------------------
 
 def ranking_causal(G):
     resultados = []
 
     for no in G.nodes():
-        resultados.append(efeito_causal_no(G, no))
+        resultados.append(efeito_causal(G, no))
 
     for r in resultados:
-        r["pontuacao_causal"] = (
-            abs(r["delta_componentes"]) * 2 +
-            abs(r["delta_modularidade"])
-        )
+        r["score"] = abs(r["delta_componentes"]) * 2 + abs(r["delta_modularidade"])
 
-    return sorted(resultados, key=lambda x: x["pontuacao_causal"], reverse=True)
+    return sorted(resultados, key=lambda x: x["score"], reverse=True)
 
 # -----------------------------
-# 5. Exemplo
+# Exemplo
 # -----------------------------
 
 G = nx.erdos_renyi_graph(50, 0.05, seed=42)
@@ -178,42 +174,39 @@ for r in ranking[:10]:
 
 ---
 
-# 6. Interpretação dos Resultados
+# 6. Interpretação
 
 <div align="justify">
 
-Esse método não mede apenas centralidade ou importância local.
+Esse método mede algo diferente de centralidade comum:
 
-Ele mede:
+* não é só “quem é importante localmente”
+* é “quem muda a estrutura global quando removido”
 
-> o quanto a estrutura global do grafo muda quando um nó é removido
+Ou seja:
 
-Assim, conseguimos identificar:
-
-* nós que conectam regiões diferentes do grafo
-* nós que mantêm a coesão do sistema
-* nós redundantes (baixa influência estrutural)
+> uma aproximação de causalidade estrutural em grafos
 
 ---
 
-Diferente de medidas tradicionais, aqui existe uma ideia explícita de:
+Nós com alto impacto geralmente são:
 
-> intervenção e comparação contrafactual
+* pontes entre regiões
+* conectores de comunidades
+* estruturas críticas de coesão
 
 </div>
 
 ---
 
-# 7. Extensões Possíveis
+# 7. Extensões
 
 <div align="justify">
 
-Esse método pode ser expandido para:
-
-* remoção simultânea de múltiplos nós
-* grafos que mudam ao longo do tempo
-* modelos neurais que aprendem influência estrutural
-* simulação de difusão (como propagação de informação ou doenças)
+* remoção de múltiplos nós ao mesmo tempo
+* grafos dinâmicos no tempo
+* aprendizado automático da importância causal
+* simulações de propagação em redes
 
 </div>
 
@@ -223,12 +216,12 @@ Esse método pode ser expandido para:
 
 <div align="justify">
 
-A abordagem transforma o problema em uma análise estrutural baseada em intervenção:
+O método transforma grafos em um sistema de análise causal:
 
-* nós são elementos manipuláveis
-* remoção é a intervenção
-* mudanças estruturais são o efeito observado
+* nós = elementos manipuláveis
+* remoção = intervenção
+* mudança estrutural = efeito observado
 
-Isso permite identificar influência causal dentro do grafo de forma direta e interpretável.
+Isso permite identificar influência estrutural de forma direta e interpretável.
 
 </div>
