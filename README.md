@@ -157,6 +157,7 @@ Ou seja:
 
 > uma forma simples de inferência causal em redes
 
+A lista final gerada pelo código mostra os nós mais importantes no topo,com maior score
 ---
 
 # 7. Extensão
@@ -168,9 +169,3 @@ Ou seja:
 
 ---
 
-Se quiser, posso te mandar uma versão **nível paper**, com:
-
-* formalização estilo artigo
-* ligação com teoria do “do-operator”
-* versão com grafos dinâmicos (tempo real)
-* ou versão com redes neurais em grafos para aprender causalidade automaticamente
