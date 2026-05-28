@@ -148,6 +148,7 @@ for r in ranking[:10]:
 
 # 6. Interpretação
 
+A lista final gerada pelo código mostra os nós mais importantes no topo,com maior score.
 Esse método mede algo mais forte que centralidade comum:
 
 * não é “quem tem mais conexões”
@@ -157,7 +158,6 @@ Ou seja:
 
 > uma forma simples de inferência causal em redes
 
-A lista final gerada pelo código mostra os nós mais importantes no topo,com maior score
 ---
 
 # 7. Extensão
